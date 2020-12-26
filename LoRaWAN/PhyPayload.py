@@ -39,7 +39,7 @@ class PhyPayload:
         return phy_payload
 
     def get_mhdr(self):
-        return self.mhdr;
+        return self.mhdr
 
     def set_mhdr(self, mhdr):
         self.mhdr = mhdr

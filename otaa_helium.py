@@ -32,11 +32,11 @@ class LoRaWANotaa(LoRa):
         print(lorawan.get_mhdr().get_mversion())
 
         if lorawan.get_mhdr().get_mtype() == MHDR.JOIN_ACCEPT:
-            print("Got LoRaWAN join accept")
+            print("Got LoRaWAN join accept. Paste these values into keys.py")
             print(lorawan.valid_mic())
-            print(lorawan.get_devaddr())
-            print(lorawan.derive_nwskey(devnonce))
-            print(lorawan.derive_appskey(devnonce))
+            print("devaddr = {}".format(lorawan.get_devaddr()))
+            print("nwskey = {}".format(lorawan.derive_nwskey(devnonce)))
+            print("appskey = {}".format(lorawan.derive_appskey(devnonce)))
             print("\n")
             sys.exit(0)
 

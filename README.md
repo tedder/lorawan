@@ -11,8 +11,7 @@ It also allows you to connect as a client to the Helium Network.
 
 You must create a device on the Helium Console at https://console.helium.com/
 
-You need to create a file called "keys.py" which defines the device keys.
-
+You need to rename "keys_example.py" to "keys.py" and enter you device information from the Helium Console.
 
 
 ## Installation

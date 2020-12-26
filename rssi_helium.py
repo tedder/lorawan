@@ -66,7 +66,7 @@ class LoRaWANotaa(LoRa):
         payload = self.read_payload(nocheck=True)
         print(payload)
 
-        lorawan = LoRaWAN.new(helium.nwskey, helium.appskey)
+        lorawan = LoRaWAN.new(keys.nwskey, keys.appskey)
         lorawan.read(payload)
         print(lorawan.get_mhdr().get_mversion())
         print(lorawan.get_mhdr().get_mtype())
@@ -92,8 +92,8 @@ class LoRaWANotaa(LoRa):
     def tx(self):
         global msg
         #self.tx_counter += 1
-        lorawan = LoRaWAN.new(helium.nwskey, helium.appskey)
-        lorawan.create(MHDR.CONF_DATA_UP, {'devaddr': helium.devaddr, 'fcnt': self.tx_counter, 'data': list(map(ord, msg)) })
+        lorawan = LoRaWAN.new(keys.nwskey, keys.appskey)
+        lorawan.create(MHDR.CONF_DATA_UP, {'devaddr': keys.devaddr, 'fcnt': self.tx_counter, 'data': list(map(ord, msg)) })
         print("tx: {}".format(lorawan.to_raw()))
         self.write_payload(lorawan.to_raw())
         self.set_mode(MODE.TX)

@@ -18,6 +18,7 @@ import busio
 import RPi.GPIO as GPIO
 
 import helium
+import keys
 
 # Button A
 btnA = DigitalInOut(board.D5)
@@ -36,8 +37,6 @@ btnC.pull = Pull.UP
 
 BOARD.setup()
 parser = LoRaArgumentParser("LoRaWAN sender")
-UPFREQ = 903.9
-DOWNFREQ = 923.3
 
 
 # Create the I2C interface.
@@ -119,7 +118,7 @@ class LoRaWANotaa(LoRa):
         self.clear_irq_flags(RxDone=1)
         self.set_mode(MODE.SLEEP)
         self.set_dio_mapping([1,0,0,0,0,0])
-        self.set_freq(UPFREQ)
+        self.set_freq(helium.UPFREQ)
         self.set_bw(7)
         self.set_spreading_factor(7)
         self.set_pa_config(max_power=0x0F, output_power=0x0E)
@@ -133,7 +132,7 @@ class LoRaWANotaa(LoRa):
         print("TxDone")
         self.set_mode(MODE.SLEEP)
         self.set_dio_mapping([0,0,0,0,0,0])
-        self.set_freq(DOWNFREQ)         
+        self.set_freq(helium.DOWNFREQ)         
         self.set_bw(9)
         self.set_spreading_factor(7)        
         self.set_pa_config(pa_select=1)
@@ -169,7 +168,7 @@ def main():
     # args = parser.parse_args()
     # frame = int(args.frame)
     # msg = args.msg
-    frame = 118
+    frame = 119
     msg = 'Test'
     init(frame)
 

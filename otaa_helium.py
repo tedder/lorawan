@@ -10,8 +10,8 @@ from random import randrange
 import reset_ada
 BOARD.setup()
 parser = LoRaArgumentParser("LoRaWAN sender")
-UPFREQ = 903.9#\903.9
-DOWNFREQ = 923.3#903.9#  923.3
+UPFREQ = 903.9
+DOWNFREQ = 923.3
 class LoRaWANotaa(LoRa):
     def __init__(self, verbose = False):
         super(LoRaWANotaa, self).__init__(verbose)

@@ -16,7 +16,8 @@ class MacPayload:
 
         self.fhdr = FHDR()
         self.fhdr.read(mac_payload)
-        self.fport = mac_payload[self.fhdr.length()]
+        #self.fport = mac_payload[self.fhdr.length()]
+        self.fport = 0 # Hack!
         self.frm_payload = None
         if mtype == MHDR.JOIN_REQUEST:
             self.frm_payload = JoinRequestPayload()
@@ -32,6 +33,10 @@ class MacPayload:
     def create(self, mtype, key, args):
         self.fhdr = FHDR()
         self.fhdr.create(mtype, args)
+
+        # self.fhdr.set_fopts([0x03, 0x00]) # NACK ADRLinkReq
+        # self.fhdr.set_fctrl(2)
+
         self.fport = 0x01
         self.frm_payload = None
         if mtype == MHDR.JOIN_REQUEST:

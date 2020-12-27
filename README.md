@@ -31,6 +31,10 @@ The message just sends with the same frame to prevent having to track that and s
 
 The script pulls the RSSI, the packet RSSI, and the SNR and displays it on the OLED.
 
+[pi]: pi.jpg "pi"
+
+![alt text][pi]
+
 ## TODO
 Automatically track frame number. 
 Automatically capture device registration info and put in keys.py.

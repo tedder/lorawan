@@ -33,10 +33,13 @@ class MacPayload:
     def create(self, mtype, key, args):
         self.fhdr = FHDR()
         self.fhdr.create(mtype, args)
-
-        # This sends a MAC layer nack to stop the Helium hotspot from sending the downlink forever.
-        self.fhdr.set_fopts([0x03, 0x00]) # NACK ADRLinkReq.
-        self.fhdr.set_fctrl(2)
+        
+        if 'ack' in args:
+            self.fhdr.set_fopts([0x03, 0x00]) # 
+            self.fhdr.set_fctrl(0x22) # ACK, 2 bytes in fopts for stopping confirmed downlinks.      
+        else: # This sends a MAC layer nack to stop the Helium hotspot from sending the downlink forever.
+            self.fhdr.set_fopts([0x03, 0x00]) # NACK ADRLinkReq.
+            self.fhdr.set_fctrl(0x02)                  
 
         self.fport = 0x01
         self.frm_payload = None

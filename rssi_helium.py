@@ -19,6 +19,7 @@ import RPi.GPIO as GPIO
 
 import helium
 import keys
+import frame
 
 # Button A
 btnA = DigitalInOut(board.D5)
@@ -58,23 +59,33 @@ msg = 'Test'
 class LoRaWANotaa(LoRa):
     def __init__(self, verbose = False):
         super(LoRaWANotaa, self).__init__(verbose)
+        self.ack = False
 
     def on_rx_done(self):
-        print("RxDone")
-
         self.clear_irq_flags(RxDone=1)
         payload = self.read_payload(nocheck=True)
-        print(payload)
+        print("Raw payload: {}".format(payload))
 
         lorawan = LoRaWAN.new(keys.nwskey, keys.appskey)
         lorawan.read(payload)
-        print(lorawan.get_mhdr().get_mversion())
-        print(lorawan.get_mhdr().get_mtype())
-        print(lorawan.get_mic())
-        print(lorawan.compute_mic())
-        print(lorawan.valid_mic())
-        print("".join(list(map(chr, lorawan.get_payload()))))
+        decoded = "".join(list(map(chr, lorawan.get_payload())))
+        print("Decoded: {}".format(decoded))
         print("\n")
+        
+        if lorawan.get_mhdr().get_mtype() == MHDR.UNCONF_DATA_DOWN:
+            print("Unconfirmed data down.")
+            downlink = decoded
+        elif lorawan.get_mhdr().get_mtype() == MHDR.CONF_DATA_DOWN:
+            print("Confirmed data down.")
+            self.ack = True
+            downlink = decoded            
+        elif lorawan.get_mhdr().get_mtype() == MHDR.CONF_DATA_UP:
+            print("Confirmed data up.")
+            downlink = decoded                        
+        else:
+            print("Other packet.")
+            downlink = ''
+
 
         self.set_mode(MODE.STDBY)
 
@@ -82,18 +93,37 @@ class LoRaWANotaa(LoRa):
         s += " pkt_snr_value  %f\n" % self.get_pkt_snr_value()
         s += " pkt_rssi_value %d\n" % self.get_pkt_rssi_value()
         s += " rssi_value     %d\n" % self.get_rssi_value()
+        s += " msg: %s" % downlink
         display.fill(0)
         display.text(s, 0, 0, 1)
         display.show()
         print(s)
 
+    def increment(self):
+        self.tx_counter += 1
+        data_file = open("frame.py", "w")
+        data_file.write(
+            'frame = {}\n'.format(self.tx_counter))        
+        data_file.close()
 
-        
-    def tx(self):
+    def tx(self, conf=True):
         global msg
-        #self.tx_counter += 1
+        if conf:
+            data = MHDR.CONF_DATA_UP
+            print('Sending confirmed data up.')
+        else:
+            data = MHDR.UNCONF_DATA_UP
+            print('Sending unconfirmed data up.')            
+        self.increment()
+
         lorawan = LoRaWAN.new(keys.nwskey, keys.appskey)
-        lorawan.create(MHDR.CONF_DATA_UP, {'devaddr': keys.devaddr, 'fcnt': self.tx_counter, 'data': list(map(ord, msg)) })
+        if self.ack:
+            print('Sending with Ack')
+            lorawan.create(data, {'devaddr': keys.devaddr, 'fcnt': self.tx_counter, 'data': list(map(ord, msg)), 'ack':True})
+            self.ack = False
+        else:
+            print('Sending without Ack')
+            lorawan.create(data, {'devaddr': keys.devaddr, 'fcnt': self.tx_counter, 'data': list(map(ord, msg))})
         print("tx: {}".format(lorawan.to_raw()))
         self.write_payload(lorawan.to_raw())
         self.set_mode(MODE.TX)
@@ -108,7 +138,10 @@ class LoRaWANotaa(LoRa):
             sleep(.1)
             if not btnB.value:
                 self.setup_tx()
-                self.tx()                
+                self.tx()   
+            if not btnC.value:
+                self.setup_tx()
+                self.tx(False)                                   
 
     def set_frame(self,frame):
         self.tx_counter = frame
@@ -129,7 +162,6 @@ class LoRaWANotaa(LoRa):
 
     def on_tx_done(self):
         self.clear_irq_flags(TxDone=1)
-        print("TxDone")
         self.set_mode(MODE.SLEEP)
         self.set_dio_mapping([0,0,0,0,0,0])
         self.set_freq(helium.DOWNFREQ)         
@@ -144,7 +176,7 @@ class LoRaWANotaa(LoRa):
         self.set_mode(MODE.RXCONT)
 
 def init(frame):
-    lora = LoRaWANotaa(True)
+    lora = LoRaWANotaa(False)
     lora.set_frame(frame)
 
     try:
@@ -168,9 +200,8 @@ def main():
     # args = parser.parse_args()
     # frame = int(args.frame)
     # msg = args.msg
-    frame = 119
     msg = 'Test'
-    init(frame)
+    init(frame.frame)
 
 if __name__ == "__main__":
     main()

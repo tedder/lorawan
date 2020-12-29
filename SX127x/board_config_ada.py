@@ -36,7 +36,7 @@ class BOARD:
     DIO2 = 24   # RaspPi GPIO 24
    # DIO3 = 25   # RaspPi GPIO 25
    # LED  = 18   # RaspPi GPIO 18 connects to the LED on the proto shield
-    SWITCH = 5 # RaspPi GPIO 5 connects to a switch
+   # SWITCH = 5 # RaspPi GPIO 5 connects to a switch
     RESET = 25
 
     # The spi object is kept here
@@ -57,7 +57,7 @@ class BOARD:
         # GPIO.setup(BOARD.LED, GPIO.OUT)
         # GPIO.output(BOARD.LED, 0)
         # switch
-        GPIO.setup(BOARD.SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) 
+        #GPIO.setup(BOARD.SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) 
         # DIOx
         for gpio_pin in [BOARD.DIO0, BOARD.DIO1, BOARD.DIO2]:
             GPIO.setup(gpio_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)

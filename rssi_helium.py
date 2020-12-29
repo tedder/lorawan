@@ -75,6 +75,11 @@ class LoRaWANotaa(LoRa):
         if lorawan.get_mhdr().get_mtype() == MHDR.UNCONF_DATA_DOWN:
             print("Unconfirmed data down.")
             downlink = decoded
+            res = lorawan.mac_payload.get_fhdr().get_fctrl()
+            if 0x20 & res != 0: # Check Ack bit.
+                print("Server ack")
+                if len(downlink) == 0:
+                    downlink = "Server ack"
         elif lorawan.get_mhdr().get_mtype() == MHDR.CONF_DATA_DOWN:
             print("Confirmed data down.")
             self.ack = True

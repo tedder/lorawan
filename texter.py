@@ -58,7 +58,7 @@ class LoRaWANotaa(LoRa):
         super(LoRaWANotaa, self).__init__(verbose)
         self.ack = False
         self.msg_index = 0
-        self.msgs = ['OK!','Yes.','No.','Maybe.','Call me.',':)']
+        self.msgs = ['On my way.','LOL','Yes.','No.','Maybe.','Call me.',':)',':(']
         self.waiting = False
         self.timeout = 0
 
@@ -112,6 +112,10 @@ class LoRaWANotaa(LoRa):
         data_file.close()
 
     def tx(self, msg="", conf=False):
+        if len(msg) > 0:
+            self.update("Sending message...")
+        else:
+            self.update("Checking for msgs...")        
         if conf:
             data = MHDR.CONF_DATA_UP
             print('Sending confirmed data up.')
@@ -122,19 +126,16 @@ class LoRaWANotaa(LoRa):
 
         lorawan = LoRaWAN.new(keys.nwskey, keys.appskey)
         if self.ack:
-            print('Sending with Ack')
+            print('Sending with Ack {}'.format(self.tx_counter))
             lorawan.create(data, {'devaddr': keys.devaddr, 'fcnt': self.tx_counter, 'data': list(map(ord, msg)), 'ack':True})
             self.ack = False
         else:
-            print('Sending without Ack')
+            print('Sending without Ack {}'.format(self.tx_counter))
             lorawan.create(data, {'devaddr': keys.devaddr, 'fcnt': self.tx_counter, 'data': list(map(ord, msg))})
         print("tx: {}".format(lorawan.to_raw()))
         self.write_payload(lorawan.to_raw())
         self.set_mode(MODE.TX)
-        if len(msg) > 0:
-            self.update("Sending message...")
-        else:
-            self.update("Checking for msgs...")
+
 
     def update(self,msg=''):
         display.fill(0)
@@ -200,7 +201,7 @@ class LoRaWANotaa(LoRa):
         self.set_spreading_factor(7)        
         self.set_pa_config(pa_select=1)
         self.set_sync_word(0x34)
-        self.set_rx_crc(False)
+        self.set_rx_crc(True)
         self.set_invert_iq(1)
 
         self.reset_ptr_rx()

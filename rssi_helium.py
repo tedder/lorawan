@@ -14,12 +14,14 @@ import adafruit_ssd1306
 from digitalio import DigitalInOut, Direction, Pull
 import board
 import busio
+import os
+import re
 
 import RPi.GPIO as GPIO
 
 import helium
 import keys
-import frame
+#import frame
 
 # Button A
 btnA = DigitalInOut(board.D5)
@@ -106,7 +108,8 @@ class LoRaWANotaa(LoRa):
 
     def increment(self):
         self.tx_counter += 1
-        data_file = open("frame.py", "w")
+
+        data_file = open("frame.txt", "w")
         data_file.write(
             'frame = {}\n'.format(self.tx_counter))        
         data_file.close()
@@ -180,8 +183,16 @@ class LoRaWANotaa(LoRa):
         self.reset_ptr_rx()
         self.set_mode(MODE.RXCONT)
 
-def init(frame):
+def init():
     lora = LoRaWANotaa(False)
+
+    frame = 0
+    if os.path.exists('frame.txt'):
+        with open('frame.txt') as df:
+            for line in df:
+                if m := re.match('^frame\s*=\s*(\d+)', line):
+                    frame = int(m.group(1))
+
     lora.set_frame(frame)
 
     try:
@@ -197,7 +208,7 @@ def init(frame):
 
 
 def main():
-    global frame
+    #global frame
     global msg
     # parser = argparse.ArgumentParser(add_help=True, description="Trasnmit a LoRa msg")
     # parser.add_argument("--frame", help="Message frame")
@@ -206,7 +217,7 @@ def main():
     # frame = int(args.frame)
     # msg = args.msg
     msg = 'Test'
-    init(frame.frame)
+    init()
 
 if __name__ == "__main__":
     main()

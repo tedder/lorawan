@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import sys
 import argparse
 from time import sleep
@@ -21,7 +22,6 @@ import RPi.GPIO as GPIO
 
 import helium
 import keys
-#import frame
 
 # Button A
 btnA = DigitalInOut(board.D5)
@@ -54,9 +54,6 @@ display.text('LoRA!', 0, 0, 1)
 display.show()
 width = display.width
 height = display.height
-
-global msg
-msg = 'Test'
 
 class LoRaWANotaa(LoRa):
     def __init__(self, verbose = False):
@@ -110,12 +107,10 @@ class LoRaWANotaa(LoRa):
         self.tx_counter += 1
 
         data_file = open("frame.txt", "w")
-        data_file.write(
-            'frame = {}\n'.format(self.tx_counter))        
+        data_file.write(f'frame = {{self.tx_counter}}\n')
         data_file.close()
 
-    def tx(self, conf=True):
-        global msg
+    def tx(self, msg, conf=True):
         if conf:
             data = MHDR.CONF_DATA_UP
             print('Sending confirmed data up.')
@@ -132,16 +127,16 @@ class LoRaWANotaa(LoRa):
         else:
             print('Sending without Ack')
             lorawan.create(data, {'devaddr': keys.devaddr, 'fcnt': self.tx_counter, 'data': list(map(ord, msg))})
-        print("tx: {}".format(lorawan.to_raw()))
+        print(f"tx: {lorawan.to_raw()}")
         self.write_payload(lorawan.to_raw())
         self.set_mode(MODE.TX)
         display.fill(0)
         display.text('Transmit!', 0, 0, 1)
         display.show()
 
-    def start(self):
+    def start(self, msg):
         self.setup_tx()
-        self.tx()
+        self.tx(msg)
         while True:
             sleep(.1)
             if not btnB.value:
@@ -183,7 +178,7 @@ class LoRaWANotaa(LoRa):
         self.reset_ptr_rx()
         self.set_mode(MODE.RXCONT)
 
-def init():
+def init(msg):
     lora = LoRaWANotaa(False)
 
     frame = 0
@@ -197,7 +192,7 @@ def init():
 
     try:
         print("Sending LoRaWAN tx\n")
-        lora.start()
+        lora.start(msg)
     except KeyboardInterrupt:
         sys.stdout.flush()
         print("\nKeyboardInterrupt")
@@ -208,16 +203,12 @@ def init():
 
 
 def main():
-    #global frame
-    global msg
     # parser = argparse.ArgumentParser(add_help=True, description="Trasnmit a LoRa msg")
     # parser.add_argument("--frame", help="Message frame")
     # parser.add_argument("--msg", help="tokens file")
     # args = parser.parse_args()
     # frame = int(args.frame)
-    # msg = args.msg
-    msg = 'Test'
-    init()
+    init('test')
 
 if __name__ == "__main__":
     main()

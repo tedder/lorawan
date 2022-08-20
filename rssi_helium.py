@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
+import json
 import sys
 import argparse
+import datetime
 from time import sleep
 from SX127x.LoRa import *
 from SX127x.LoRaArgumentParser import LoRaArgumentParser
@@ -14,6 +16,7 @@ import adafruit_ssd1306
 from digitalio import DigitalInOut, Direction, Pull
 import board
 import busio
+import shortuuid
 
 import RPi.GPIO as GPIO
 
@@ -48,20 +51,27 @@ reset_pin = DigitalInOut(board.D4)
 display = adafruit_ssd1306.SSD1306_I2C(128, 32, i2c, reset=reset_pin)
 # Clear the display.
 display.fill(0)
-display.text('LoRA!', 0, 0, 1)
+display.text("Test is ready to start!", 0, 0, 1)
+display.text('Push Left Button', 0, 10, 1)
+display.text('To start test.', 0, 20, 1)
 display.show()
 width = display.width
 height = display.height
 
-global msg
-msg = 'Test'
+#global msg
+global test_status
+test_status = {"running_ping": False, "ping_count": 0, "last_ping_time": None}
+#msg = 'None'
 
 class LoRaWANotaa(LoRa):
-    def __init__(self, verbose = False):
+    def __init__(self, verbose = False, ack=True):
         super(LoRaWANotaa, self).__init__(verbose)
-        self.ack = False
+        self.iter = 0
+        self.uuid = shortuuid.uuid()
+        self.ack = ack
 
     def on_rx_done(self):
+        global test_status
         self.clear_irq_flags(RxDone=1)
         payload = self.read_payload(nocheck=True)
         print("Raw payload: {}".format(payload))
@@ -69,9 +79,10 @@ class LoRaWANotaa(LoRa):
         lorawan = LoRaWAN.new(keys.nwskey, keys.appskey)
         lorawan.read(payload)
         decoded = "".join(list(map(chr, lorawan.get_payload())))
+        test_status["last_ping_time"] = decoded.split(" ")[1]
+        test_status["ping_count"] += 1
         print("Decoded: {}".format(decoded))
         print("\n")
-        
         if lorawan.get_mhdr().get_mtype() == MHDR.UNCONF_DATA_DOWN:
             print("Unconfirmed data down.")
             downlink = decoded
@@ -99,9 +110,9 @@ class LoRaWANotaa(LoRa):
         s += " pkt_rssi_value %d\n" % self.get_pkt_rssi_value()
         s += " rssi_value     %d\n" % self.get_rssi_value()
         s += " msg: %s" % downlink
-        display.fill(0)
-        display.text(s, 0, 0, 1)
-        display.show()
+        #display.fill(0)
+        #display.text(s, 0, 0, 1)
+        #display.show()
         print(s)
 
     def increment(self):
@@ -112,7 +123,8 @@ class LoRaWANotaa(LoRa):
         data_file.close()
 
     def tx(self, conf=True):
-        global msg
+        #global msg
+        msg = json.dumps({"i": self.iter, "s": self.uuid})
         if conf:
             data = MHDR.CONF_DATA_UP
             print('Sending confirmed data up.')
@@ -132,21 +144,36 @@ class LoRaWANotaa(LoRa):
         print("tx: {}".format(lorawan.to_raw()))
         self.write_payload(lorawan.to_raw())
         self.set_mode(MODE.TX)
-        display.fill(0)
-        display.text('Transmit!', 0, 0, 1)
-        display.show()
+        # display.fill(0)
+        # display.text('Transmit!', 0, 0, 1)
+        # display.show()
 
     def start(self):
-        self.setup_tx()
-        self.tx()
+        global test_status
+        last_test = None
         while True:
             sleep(.1)
+            display.fill(0)
+            display.text("Test is "+str(test_status["running_ping"]), 0, 0, 1)
+            display.text('Time: '+str(test_status["last_ping_time"]), 0, 10, 1)
+            display.text('Total Pings: '+str(test_status["ping_count"]), 0, 20, 1)
+            display.show()
+            if test_status["running_ping"] and not last_test or (last_test and (datetime.datetime.now() - last_test).seconds > 5):
+                self.setup_tx()
+                self.tx(False)
+                self.iter = self.iter+1
+                last_test = datetime.datetime.now()
+            if not btnA.value:
+                test_status["running_ping"] = True
             if not btnB.value:
-                self.setup_tx()
-                self.tx()   
+                test_status["running_ping"] = False
             if not btnC.value:
-                self.setup_tx()
-                self.tx(False)                                   
+                display.fill(0)
+                display.text("Test is shut down!", 0, 0, 1)
+                display.text('Must restart PI to', 0, 10, 1)
+                display.text('restart test.', 0, 20, 1)
+                display.show()
+                raise KeyboardInterrupt
 
     def set_frame(self,frame):
         self.tx_counter = frame
@@ -176,16 +203,15 @@ class LoRaWANotaa(LoRa):
         self.set_sync_word(0x34)
         self.set_rx_crc(False)
         self.set_invert_iq(1)
-
         self.reset_ptr_rx()
         self.set_mode(MODE.RXCONT)
 
 def init(frame):
-    lora = LoRaWANotaa(False)
+    lora = LoRaWANotaa(False, True)
     lora.set_frame(frame)
 
     try:
-        print("Sending LoRaWAN tx\n")
+        print("Starting\n")
         lora.start()
     except KeyboardInterrupt:
         sys.stdout.flush()
@@ -198,14 +224,13 @@ def init(frame):
 
 def main():
     global frame
-    global msg
+    #global msg
+    global test_status
     # parser = argparse.ArgumentParser(add_help=True, description="Trasnmit a LoRa msg")
     # parser.add_argument("--frame", help="Message frame")
     # parser.add_argument("--msg", help="tokens file")
     # args = parser.parse_args()
     # frame = int(args.frame)
-    # msg = args.msg
-    msg = 'Test'
     init(frame.frame)
 
 if __name__ == "__main__":

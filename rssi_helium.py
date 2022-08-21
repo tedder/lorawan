@@ -59,10 +59,9 @@ display.show()
 width = display.width
 height = display.height
 
-#global msg
 global test_status
 test_status = {"running_ping": False, "ping_count": 0, "last_ping_time": None}
-#msg = 'None'
+
 class LoRaWANotaa(LoRa):
     def __init__(self, verbose = False, ack=True):
         super(LoRaWANotaa, self).__init__(verbose)
@@ -74,7 +73,7 @@ class LoRaWANotaa(LoRa):
         global test_status
         self.clear_irq_flags(RxDone=1)
         payload = self.read_payload(nocheck=True)
-        print("Raw payload: {}".format(payload))
+        print(f"Raw payload: {payload}")
 
         lorawan = LoRaWAN.new(keys.nwskey, keys.appskey)
         lorawan.read(payload)
@@ -119,7 +118,7 @@ class LoRaWANotaa(LoRa):
         self.tx_counter += 1
 
         data_file = open("frame.txt", "w")
-        data_file.write(f'frame = {{self.tx_counter}}\n')
+        data_file.write(f'frame = {self.tx_counter}\n')
         data_file.close()
 
     def tx(self, msg, conf=True):
@@ -131,6 +130,7 @@ class LoRaWANotaa(LoRa):
             print('Sending unconfirmed data up.')            
         self.increment()
 
+        print(f"tx keys: {keys.nwskey}, {keys.appskey}, {keys.devaddr}")
         lorawan = LoRaWAN.new(keys.nwskey, keys.appskey)
         if self.ack:
             print('Sending with Ack')
@@ -138,41 +138,35 @@ class LoRaWANotaa(LoRa):
             self.ack = False
         else:
             print('Sending without Ack')
+            print(data, {'devaddr': keys.devaddr, 'fcnt': self.tx_counter, 'data': list(map(ord, msg))})
             lorawan.create(data, {'devaddr': keys.devaddr, 'fcnt': self.tx_counter, 'data': list(map(ord, msg))})
+        print(f"data: {list(map(ord, msg))}")
         print(f"tx: {lorawan.to_raw()}")
         self.write_payload(lorawan.to_raw())
         self.set_mode(MODE.TX)
-        # display.fill(0)
-        # display.text('Transmit!', 0, 0, 1)
-        # display.show()
 
-    def start(self, msg):
+        display.fill(0)
+        display.text('Transmit!', 0, 0, 1)
+        display.show()
+        print("tx done")
+
+    def start(self):
         msg = json.dumps({"i": self.iter, "s": self.uuid})
         self.setup_tx()
         self.tx(msg)
         while True:
             sleep(.1)
             display.fill(0)
-            display.text("Test is "+str(test_status["running_ping"]), 0, 0, 1)
-            display.text('Time: '+str(test_status["last_ping_time"]), 0, 10, 1)
-            display.text('Total Pings: '+str(test_status["ping_count"]), 0, 20, 1)
+            display.text(f'Test is {str(test_status["running_ping"])}', 0, 0, 1)
+            display.text(f'Time: {str(test_status["last_ping_time"])}', 0, 10, 1)
+            display.text(f'Total Pings: {test_status["ping_count"]}', 0, 20, 1)
             display.show()
             if test_status["running_ping"] and not last_test or (last_test and (datetime.datetime.now() - last_test).seconds > 5):
                 self.setup_tx()
-                self.tx(False)
-                self.iter = self.iter+1
-                last_test = datetime.datetime.now()
-            if not btnA.value:
-                test_status["running_ping"] = True
-            if not btnB.value:
-                test_status["running_ping"] = False
+                self.tx(msg)
             if not btnC.value:
-                display.fill(0)
-                display.text("Test is shut down!", 0, 0, 1)
-                display.text('Must restart PI to', 0, 10, 1)
-                display.text('restart test.', 0, 20, 1)
-                display.show()
-                raise KeyboardInterrupt
+                self.setup_tx()
+                self.tx(msg, False)                                   
 
     def set_frame(self,frame):
         self.tx_counter = frame
@@ -192,6 +186,7 @@ class LoRaWANotaa(LoRa):
         assert(self.get_agc_auto_on() == 1)        
 
     def on_tx_done(self):
+        print("on_tx_done")
         self.clear_irq_flags(TxDone=1)
         self.set_mode(MODE.SLEEP)
         self.set_dio_mapping([0,0,0,0,0,0])
@@ -205,7 +200,7 @@ class LoRaWANotaa(LoRa):
         self.reset_ptr_rx()
         self.set_mode(MODE.RXCONT)
 
-def init(msg):
+def init():
     lora = LoRaWANotaa(False)
 
     frame = 0
@@ -219,7 +214,7 @@ def init(msg):
 
     try:
         print("Sending LoRaWAN tx\n")
-        lora.start(msg)
+        lora.start()
     except KeyboardInterrupt:
         sys.stdout.flush()
         print("\nKeyboardInterrupt")
@@ -235,8 +230,7 @@ def main():
     # parser.add_argument("--msg", help="tokens file")
     # args = parser.parse_args()
     # frame = int(args.frame)
-    init('test')
-    init(frame.frame)
+    init()
 
 if __name__ == "__main__":
     main()

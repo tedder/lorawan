@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import json
 import sys
 import argparse
@@ -62,6 +63,9 @@ height = display.height
 global test_status
 test_status = {"running_ping": False, "ping_count": 0, "last_ping_time": None}
 
+global last_test
+last_test = None
+
 class LoRaWANotaa(LoRa):
     def __init__(self, verbose = False, ack=True):
         super(LoRaWANotaa, self).__init__(verbose)
@@ -78,10 +82,12 @@ class LoRaWANotaa(LoRa):
         lorawan = LoRaWAN.new(keys.nwskey, keys.appskey)
         lorawan.read(payload)
         decoded = "".join(list(map(chr, lorawan.get_payload())))
-        test_status["last_ping_time"] = decoded.split(" ")[1]
+        print(f"Decoded: {decoded}\n")
+
+        if " " in decoded:
+            test_status["last_ping_time"] = decoded.split(" ")[1]
         test_status["ping_count"] += 1
-        print("Decoded: {}".format(decoded))
-        print("\n")
+
         if lorawan.get_mhdr().get_mtype() == MHDR.UNCONF_DATA_DOWN:
             print("Unconfirmed data down.")
             downlink = decoded
